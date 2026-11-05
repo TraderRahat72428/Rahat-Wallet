@@ -4,107 +4,130 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#101827">
 <title>Rahat Wallet</title>
-
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.5/dist/ethers.umd.min.js"></script>
 <style>
 *{box-sizing:border-box}
-body{
- margin:0;
- background:#101827;
- color:white;
- font-family:Arial,sans-serif;
-}
-header{
- padding:22px;
- background:#18263a;
- display:flex;
- justify-content:space-between;
- align-items:center;
-}
-.logo{color:#e9c66b;font-size:22px;font-weight:bold}
+body{margin:0;background:#0b1220;color:white;font-family:Arial,sans-serif}
+header{padding:22px;background:#17243b;display:flex;justify-content:space-between;align-items:center}
+.logo{font-size:23px;font-weight:bold;color:#38e6bd}
 .container{max-width:600px;margin:auto;padding:20px}
-.balance{
- background:linear-gradient(135deg,#304c70,#172438);
- padding:25px;
- border-radius:18px;
- margin-top:20px;
-}
-.small{color:#b4c1d2;font-size:13px}
-.amount{font-size:38px;margin:15px 0}
-.actions{display:flex;gap:12px;margin-top:20px}
-button{
- flex:1;padding:14px;border:0;
- border-radius:10px;
- background:#e9c66b;
- color:#101827;font-weight:bold;
-}
-h3{margin-top:30px}
-.network{
- background:#202f43;
- padding:16px;
- margin:10px 0;
- border-radius:12px;
- display:flex;
- justify-content:space-between;
- align-items:center;
-}
-footer{text-align:center;color:#8999ad;padding:30px}
+.card{background:linear-gradient(135deg,#183c62,#17243b);padding:22px;border-radius:18px;margin:18px 0}
+.small{color:#aabbd0;font-size:14px}
+h2{font-size:22px}
+button{width:100%;padding:15px;border:0;border-radius:10px;background:#38e6bd;color:#081827;font-weight:bold;margin-top:12px;font-size:16px}
+.secondary{background:#263a55;color:white}
+input,textarea{width:100%;padding:14px;margin-top:12px;background:#101d30;border:1px solid #496078;border-radius:10px;color:white;font-size:15px}
+textarea{min-height:100px}
+#result{display:none}
+.phrase{background:#101d30;padding:15px;border-radius:10px;word-spacing:5px;line-height:2;margin-top:12px}
+.address{word-break:break-all;font-size:13px;color:#38e6bd;margin-top:12px}
+footer{text-align:center;color:#8293a8;padding:30px;font-size:12px}
 </style>
 </head>
-
 <body>
+
 <header>
- <div class="logo">◈ RAHAT WALLET</div>
- <div>🔒</div>
+<div class="logo">◇ RAHAT WALLET</div>
+<div>🔐</div>
 </header>
 
 <main class="container">
- <div class="small">YOUR CRYPTO WALLET</div>
 
- <section class="balance">
-  <div class="small">TOTAL BALANCE</div>
-  <div class="amount">$0.00</div>
-  <div class="small">No wallet connected</div>
-  <div class="actions">
-   <button disabled>Receive</button>
-   <button disabled>Send</button>
-  </div>
- </section>
+<div class="card">
+<div class="small">YOUR CRYPTO WALLET</div>
+<h2>Welcome to Rahat Wallet</h2>
+<p class="small">Your wallet. Your control.</p>
+<button onclick="createWallet()">Create New Wallet</button>
+<button class="secondary" onclick="showImport()">Import Existing Wallet</button>
+</div>
 
- <h3>Supported Networks</h3>
- <div id="networks"></div>
+<div class="card" id="importBox" style="display:none">
+<h3>Import Wallet</h3>
+<textarea id="inputPhrase" placeholder="Enter your 12 or 24 recovery words"></textarea>
+<button onclick="importWallet()">Import Wallet</button>
+<button class="secondary" onclick="hideImport()">Cancel</button>
+</div>
 
- <h3>Transactions</h3>
- <div class="network">
-  <span>No transactions yet</span>
-  <span>—</span>
- </div>
+<div class="card" id="result">
+<h3 id="walletTitle">Your Wallet</h3>
+<div class="small">RECOVERY PHRASE — KEEP SECRET</div>
+<div class="phrase" id="phrase"></div>
+<button class="secondary" onclick="copyPhrase()">Copy Recovery Phrase</button>
+
+<div class="small" style="margin-top:22px">WALLET ADDRESS</div>
+<div class="address" id="address"></div>
+<button class="secondary" onclick="copyAddress()">Copy Address</button>
+<p class="small">This is an Ethereum-compatible wallet address.</p>
+</div>
+
+<div class="card">
+<h3>Supported Networks</h3>
+<p>₿ Bitcoin — Coming Soon</p>
+<p>◆ Ethereum — Address generation</p>
+<p>🔶 BNB Chain — Coming Soon</p>
+<p>🔴 TRON — Coming Soon</p>
+<p>💎 TON — Coming Soon</p>
+<p>🟣 Polygon — Coming Soon</p>
+<p>◎ Solana — Coming Soon</p>
+</div>
+
 </main>
 
-<footer>
- RA­HAT WALLET © 2026
- <p>Your Crypto. Your Keys. Your Control.</p>
-</footer>
+<footer>Rahat Wallet © 2026</footer>
 
 <script>
-const coins=[
- ["🟡","BNB Smart Chain","BNB"],
- ["💎","Ethereum","ETH"],
- ["🔴","TRON","TRX"],
- ["🔵","TON","TON"],
- ["₿","Bitcoin","BTC"],
- ["🟣","Polygon","POL"],
- ["🟪","Solana","SOL"]
-];
+let currentWallet=null;
 
-document.getElementById("networks").innerHTML=
-coins.map(c=>`
- <div class="network">
-  <strong>${c[0]} ${c[1]}</strong>
-  <span class="small">${c[2]}</span>
- </div>
-`).join("");
+function createWallet(){
+ if(!window.ethers){
+  alert("Wallet library not loaded. Check your internet.");
+  return;
+ }
+ currentWallet=ethers.Wallet.createRandom();
+ showWallet();
+}
+
+function showImport(){
+ document.getElementById("importBox").style.display="block";
+}
+
+function hideImport(){
+ document.getElementById("importBox").style.display="none";
+}
+
+function importWallet(){
+ try{
+  if(!window.ethers) throw new Error("Library not loaded");
+  const words=document.getElementById("inputPhrase").value.trim();
+  currentWallet=ethers.Wallet.fromPhrase(words);
+  showWallet();
+  hideImport();
+ }catch(e){
+  alert("Invalid recovery phrase. Please check your words.");
+ }
+}
+
+function showWallet(){
+ document.getElementById("result").style.display="block";
+ document.getElementById("phrase").textContent=currentWallet.mnemonic.phrase;
+ document.getElementById("address").textContent=currentWallet.address;
+ document.getElementById("walletTitle").textContent="Wallet Created Successfully!";
+ document.getElementById("result").scrollIntoView({behavior:"smooth"});
+}
+
+function copyPhrase(){
+ navigator.clipboard.writeText(currentWallet.mnemonic.phrase)
+ .then(()=>alert("Recovery phrase copied. Keep it secret!"))
+ .catch(()=>alert("Copy not supported. Write it down privately."));
+}
+
+function copyAddress(){
+ navigator.clipboard.writeText(currentWallet.address)
+ .then(()=>alert("Address copied!"))
+ .catch(()=>alert("Copy failed."));
+}
 </script>
+
 </body>
 </html>
